@@ -146,7 +146,7 @@ def create_hall_model():
     for y in range(5, 9):
         set_cell(grid, -1, y, WALL)
 
-    # 今回追加: (-3,9) の壁を削除して通路化
+    # (-3,9) の壁を削除して通路化
     set_cell(grid, -3, 9, ROAD)
 
     # final exit

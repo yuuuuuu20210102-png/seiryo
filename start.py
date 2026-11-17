@@ -1,3 +1,4 @@
+import multiprocessing
 import tkinter as tk
 from tkinter import ttk
 
@@ -18,8 +19,8 @@ def sub2を実行する(root):
 def 画面を作る():
     root = tk.Tk()
     root.title("実行モード選択")
-    root.geometry("360x220")
-    root.minsize(360, 220)
+    root.geometry("380x240")
+    root.minsize(380, 240)
 
     frame = ttk.Frame(root, padding=20)
     frame.pack(fill="both", expand=True)
@@ -33,7 +34,7 @@ def 画面を作る():
 
     desc = ttk.Label(
         frame,
-        text="研究用: 条件ファイルを読んで描画なしで一括実行\n観察用: 条件を入力して描画ありで実行",
+        text="研究用: 条件Excelを読んで描画なしで一括実行\n観察用: 条件を入力して描画ありで実行",
         justify="center"
     )
     desc.pack(pady=8)
@@ -41,22 +42,30 @@ def 画面を作る():
     button_frame = ttk.Frame(frame)
     button_frame.pack(pady=20)
 
-    sub1_button = ttk.Button(
+    ttk.Button(
         button_frame,
         text="研究用",
-        command=lambda: sub1を実行する(root)
-    )
-    sub1_button.grid(row=0, column=0, padx=10)
+        command=lambda: sub1を実行する(root),
+        width=12
+    ).grid(row=0, column=0, padx=10)
 
-    sub2_button = ttk.Button(
+    ttk.Button(
         button_frame,
         text="観察用",
-        command=lambda: sub2を実行する(root)
-    )
-    sub2_button.grid(row=0, column=1, padx=10)
+        command=lambda: sub2を実行する(root),
+        width=12
+    ).grid(row=0, column=1, padx=10)
+
+    ttk.Button(
+        frame,
+        text="終了",
+        command=root.destroy,
+        width=12
+    ).pack(pady=10)
 
     root.mainloop()
 
 
 if __name__ == "__main__":
+    multiprocessing.freeze_support()
     画面を作る()

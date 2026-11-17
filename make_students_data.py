@@ -1,4 +1,5 @@
 import random
+from dataclasses import dataclass
 import matplotlib.pyplot as plt
 from matplotlib.colors import ListedColormap
 
@@ -8,6 +9,46 @@ from data.make_seiryo_data import (
     create_hall_model,
     X_MIN, X_MAX, Y_MIN, Y_MAX
 )
+
+
+@dataclass(slots=True)
+class Student:
+    id: int
+    x: int | None
+    y: int | None
+    start_pos: tuple
+    left_start_pos: bool
+    target_door: list
+    target_door_set: set
+    final_goals: list
+    final_goal_set: set
+    passed_door: bool
+    class_name: str
+    exited: bool
+    start_step: int
+    path_history_before_door: list
+    path_history_before_door_set: set
+    forbidden_after_door: set
+    stay_prob: float
+    start_wait_steps: int
+    steps_since_start: int
+    must_leave_start: bool
+    last_position: tuple
+    stuck_steps: int
+    cell_entry_step: int = 0
+    cell_entry_seq: int = 0
+    swap_grace_steps: int = 0
+    swap_block_return_steps: int = 0
+    swap_block_return_pos: tuple | None = None
+
+    def __getitem__(self, key):
+        return getattr(self, key)
+
+    def __setitem__(self, key, value):
+        setattr(self, key, value)
+
+    def get(self, key, default=None):
+        return getattr(self, key, default)
 
 
 def make_rectangle_cells(x1, x2, y1, y2):
@@ -55,11 +96,11 @@ def クラスブロック定義を作る():
     return {
         "11R": combine_rectangles([
             (32, 32, 3, 7), (34, 34, 3, 7), (36, 36, 3, 7), (38, 38, 3, 7),
-            (32, 32, 9, 12), (34, 34, 9, 13), (36, 36, 9, 15), (38, 38, 9, 15)
+            (32, 32, 9, 12), (34, 34, 9, 13), (36, 36, 9, 15), (38, 38, 9, 14)
         ]),
         "12R": combine_rectangles([
-            (22, 28, 2, 2), (22, 28, 4, 4), (22, 28, 6, 6), (22, 28, 8, 8),
-            (22, 28, 10, 10), (22, 28, 12, 12), (22, 28, 14, 14)
+            (23, 28, 2, 2), (23, 28, 4, 4), (23, 28, 6, 6), (23, 28, 8, 8),
+            (23, 28, 10, 10), (23, 28, 12, 12), (23, 28, 14, 14)
         ]),
         "13R": combine_rectangles([
             (20, 22, 2, 2), (20, 22, 4, 4), (20, 22, 6, 6), (20, 22, 8, 8),
@@ -82,6 +123,7 @@ def クラスブロック定義を作る():
         ]),
         "17R": combine_rectangles([
             (14, 17, 16, 16), (14, 17, 18, 18), (14, 17, 20, 20), (14, 17, 22, 22),
+            (16, 16, 24, 24),
             (20, 24, 16, 16), (20, 24, 18, 18), (20, 24, 20, 20),
             (20, 24, 22, 22), (20, 24, 24, 24)
         ]),
@@ -110,31 +152,42 @@ def 個体停止確率を作る():
 
 def add_students(students, grid, cells, target_door, final_goals, class_name, start_step, start_id):
     sid = start_id
+    target_door_set = {tuple(pos) for pos in target_door}
+    final_goal_set = {tuple(pos) for pos in final_goals}
+
     for x, y in cells:
         set_cell(grid, x, y, START_SEAT)
+        initial_path = [(x, y)]
+        initial_path_set = {(x, y)}
 
-        students.append({
-            "id": sid,
-            "x": x,
-            "y": y,
-            "start_pos": (x, y),
-            "left_start_pos": False,
-            "target_door": target_door,
-            "final_goals": final_goals,
-            "passed_door": False,
-            "class_name": class_name,
-            "exited": False,
-            "start_step": start_step,
-            "path_history_before_door": [(x, y)],
-            "forbidden_after_door": set(),
-            "stay_prob": 個体停止確率を作る(),
-            "start_wait_steps": random.randint(1, 5),
-            "steps_since_start": 0,
-            "must_leave_start": False,
-            "last_position": (x, y),
-            "stuck_steps": 0,
-        })
+        students.append(
+            Student(
+                id=sid,
+                x=x,
+                y=y,
+                start_pos=(x, y),
+                left_start_pos=False,
+                target_door=target_door,
+                target_door_set=target_door_set,
+                final_goals=final_goals,
+                final_goal_set=final_goal_set,
+                passed_door=False,
+                class_name=class_name,
+                exited=False,
+                start_step=start_step,
+                path_history_before_door=initial_path,
+                path_history_before_door_set=initial_path_set,
+                forbidden_after_door=set(),
+                stay_prob=個体停止確率を作る(),
+                start_wait_steps=random.randint(1, 5),
+                steps_since_start=0,
+                must_leave_start=False,
+                last_position=(x, y),
+                stuck_steps=0,
+            )
+        )
         sid += 1
+
     return sid
 
 
@@ -197,9 +250,9 @@ def plot_students_on_grid(grid, students, title="Student Placement"):
 
     xs, ys, cs = [], [], []
     for s in students:
-        xs.append(s["x"])
-        ys.append(s["y"])
-        cname = s["class_name"]
+        xs.append(s.x)
+        ys.append(s.y)
+        cname = s.class_name
         if cname not in class_color:
             class_color[cname] = palette[color_idx % len(palette)]
             color_idx += 1
@@ -219,4 +272,4 @@ if __name__ == "__main__":
     assignment = デフォルト扉割り当てを作る(doors)
     start_steps = デフォルト退場開始ステップを作る()
     students = create_students(grid, doors, final_goals, assignment, start_steps)
-    plot_students_on_grid(grid, students, "Students Only")
+    plot_students_on_grid(grid, students)

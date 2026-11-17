@@ -4,6 +4,7 @@ from datetime import datetime
 
 from config.sim_settings import (
     CLASS_NAMES,
+    VALID_DOOR_NAMES,
     DEFAULT_MAX_STEPS,
     DEFAULT_PROCESS_STEPS_PER_FRAME,
     DEFAULT_DISPLAY_INTERVAL_MS,
@@ -13,17 +14,44 @@ from config.sim_settings import (
 from hub import 描画ありでシミュレーションを実行する
 
 
+def 非負整数に変換する(value, name):
+    try:
+        ivalue = int(str(value).strip())
+    except Exception:
+        raise ValueError(f"{name} は整数で入力してください。")
+    if ivalue < 0:
+        raise ValueError(f"{name} は0以上にしてください。")
+    return ivalue
+
+
+def 正整数に変換する(value, name):
+    ivalue = 非負整数に変換する(value, name)
+    if ivalue <= 0:
+        raise ValueError(f"{name} は1以上にしてください。")
+    return ivalue
+
+
 def 入力値を辞書化する(entries):
     door_assignment = {}
     start_steps = {}
 
     for class_name in CLASS_NAMES:
-        door_assignment[class_name] = entries[f"door_{class_name}"].get().strip()
-        start_steps[class_name] = int(entries[f"start_{class_name}"].get().strip())
+        door_value = entries[f"door_{class_name}"].get().strip()
+        if door_value not in VALID_DOOR_NAMES:
+            raise ValueError(f"{class_name} の扉は {VALID_DOOR_NAMES} のどれかを選んでください。")
+        door_assignment[class_name] = door_value
 
-    max_steps = int(entries["max_steps"].get().strip())
-    process_steps_per_frame = int(entries["process_steps_per_frame"].get().strip())
-    display_interval_ms = int(entries["display_interval_ms"].get().strip())
+        start_steps[class_name] = 非負整数に変換する(
+            entries[f"start_{class_name}"].get(),
+            f"{class_name} の出発ステップ"
+        )
+
+    max_steps = 正整数に変換する(entries["max_steps"].get(), "最大ステップ数")
+    process_steps_per_frame = 正整数に変換する(
+        entries["process_steps_per_frame"].get(),
+        "1表示あたり内部ステップ数"
+    )
+    display_interval_ms = 正整数に変換する(entries["display_interval_ms"].get(), "表示間隔(ms)")
 
     return {
         "door_assignment_by_name": door_assignment,
@@ -119,28 +147,36 @@ def 完了画面を表示する(root, result):
     ttk.Button(frame, text="次の画面へ", command=次へ).pack(pady=12)
 
 
-def 実行ボタン処理(entries, root):
+def 実行ボタン処理(entries, root, run_button):
     try:
         params = 入力値を辞書化する(entries)
     except Exception as e:
         messagebox.showerror("入力エラー", f"入力値を確認してください。\n{e}")
         return
 
-    result = 描画ありでシミュレーションを実行する(
-        door_assignment_by_name=params["door_assignment_by_name"],
-        start_steps=params["start_steps"],
-        max_steps=params["max_steps"],
-        process_steps_per_frame=params["process_steps_per_frame"],
-        display_interval_ms=params["display_interval_ms"],
-    )
+    run_button.config(state="disabled")
+    root.update()
 
-    完了画面を表示する(root, result)
+    try:
+        result = 描画ありでシミュレーションを実行する(
+            door_assignment_by_name=params["door_assignment_by_name"],
+            start_steps=params["start_steps"],
+            max_steps=params["max_steps"],
+            process_steps_per_frame=params["process_steps_per_frame"],
+            display_interval_ms=params["display_interval_ms"],
+        )
+
+        完了画面を表示する(root, result)
+    except Exception as e:
+        messagebox.showerror("実行エラー", f"シミュレーション中にエラーが起きました。\n{e}")
+    finally:
+        run_button.config(state="normal")
 
 
-def ラベル付き入力(frame, row, label_text, default_value):
+def ラベル付き入力(frame, row, label_text, default_value, width=12):
     ttk.Label(frame, text=label_text).grid(row=row, column=0, sticky="w", padx=4, pady=2)
 
-    entry = ttk.Entry(frame, width=12)
+    entry = ttk.Entry(frame, width=width)
     entry.grid(row=row, column=1, sticky="w", padx=4, pady=2)
     entry.insert(0, str(default_value))
 
@@ -150,8 +186,8 @@ def ラベル付き入力(frame, row, label_text, default_value):
 def 画面を作る():
     root = tk.Tk()
     root.title("シミュレーション設定画面")
-    root.geometry("420x520")
-    root.minsize(420, 520)
+    root.geometry("480x540")
+    root.minsize(480, 540)
 
     main = ttk.Frame(root, padding=10)
     main.pack(fill="both", expand=True)
@@ -165,7 +201,7 @@ def 画面を作る():
         base_frame, 0, "最大ステップ数", DEFAULT_MAX_STEPS
     )
     entries["process_steps_per_frame"] = ラベル付き入力(
-        base_frame, 1, "処理間隔（1表示あたり内部ステップ数）", DEFAULT_PROCESS_STEPS_PER_FRAME
+        base_frame, 1, "1表示あたり内部ステップ数", DEFAULT_PROCESS_STEPS_PER_FRAME
     )
     entries["display_interval_ms"] = ラベル付き入力(
         base_frame, 2, "表示間隔(ms)", DEFAULT_DISPLAY_INTERVAL_MS
@@ -181,15 +217,27 @@ def 画面を作る():
     for i, class_name in enumerate(CLASS_NAMES, start=1):
         ttk.Label(class_frame, text=class_name).grid(row=i, column=0, padx=4, pady=2, sticky="w")
 
-        door_entry = ttk.Entry(class_frame, width=10)
-        door_entry.grid(row=i, column=1, padx=4, pady=2)
-        door_entry.insert(0, str(DEFAULT_DOOR_ASSIGNMENT[class_name]))
-        entries[f"door_{class_name}"] = door_entry
+        door_combo = ttk.Combobox(
+            class_frame,
+            width=8,
+            state="readonly",
+            values=VALID_DOOR_NAMES
+        )
+        door_combo.grid(row=i, column=1, padx=4, pady=2)
+        door_combo.set(str(DEFAULT_DOOR_ASSIGNMENT[class_name]))
+        entries[f"door_{class_name}"] = door_combo
 
         start_entry = ttk.Entry(class_frame, width=10)
         start_entry.grid(row=i, column=2, padx=4, pady=2)
         start_entry.insert(0, str(DEFAULT_START_STEPS[class_name]))
         entries[f"start_{class_name}"] = start_entry
+
+    note = ttk.Label(
+        main,
+        text="※ 扉は 1〜5 から選択、出発ステップは0以上の整数で入力してください。",
+        foreground="gray"
+    )
+    note.pack(anchor="w", pady=4)
 
     button_frame = ttk.Frame(main)
     button_frame.pack(fill="x", expand=False, pady=10)
@@ -197,9 +245,11 @@ def 画面を作る():
     run_button = ttk.Button(
         button_frame,
         text="シミュレーション開始",
-        command=lambda: 実行ボタン処理(entries, root)
+        command=lambda: 実行ボタン処理(entries, root, run_button)
     )
     run_button.pack(side="left", padx=4)
+
+    ttk.Button(button_frame, text="終了", command=root.destroy).pack(side="left", padx=4)
 
     root.mainloop()
 

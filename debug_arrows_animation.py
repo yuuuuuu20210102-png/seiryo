@@ -91,10 +91,8 @@ def 生徒と矢印を描く(ax, grid, students, sim_state, class_color):
         x, y = s["x"], s["y"]
         color = class_color.get(s["class_name"], "blue")
 
-        # 生徒本体
         ax.scatter([x], [y], c=[color], s=18, edgecolors="black", linewidths=0.3, zorder=3)
 
-        # 初期座席からまだ出ていない生徒は、最初の移動方向を矢印表示
         dist_map = 現在の距離マップを得る(s, sim_state)
         candidates = 本来進みたい候補を確認用に集める(grid, s, occupied, dist_map)
 
@@ -122,13 +120,7 @@ def シミュレーションを矢印付きで表示する(max_steps=500, interv
     sim_state = シミュレーション状態を初期化する(grid, students)
     class_color = クラス色辞書を作る(students)
 
-    cmap = ListedColormap([
-        "black",   # 壁
-        "white",   # 通路
-        "red",     # 扉
-        "blue",    # 最終出口
-        "gray",    # 初期座席
-    ])
+    cmap = ListedColormap(["black", "white", "red", "blue", "gray"])
 
     fig, ax = plt.subplots(figsize=(16, 9))
     current_step = {"value": 0}
