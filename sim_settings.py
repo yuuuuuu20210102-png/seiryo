@@ -3,7 +3,9 @@ CLASS_NAMES = [
     "15R", "16R", "17R", "18R"
 ]
 
-DEFAULT_MAX_STEPS = 3000
+VALID_DOOR_NAMES = ["1", "2", "3", "4", "5"]
+
+DEFAULT_MAX_STEPS = 1000
 DEFAULT_PROCESS_STEPS_PER_FRAME = 1
 DEFAULT_DISPLAY_INTERVAL_MS = 150
 
@@ -28,9 +30,6 @@ DEFAULT_START_STEPS = {
     "17R": 0,
     "18R": 0,
 }
-
-SUB1_INPUT_CSV = "data/sub1_cases.csv"
-SUB1_OUTPUT_CSV = "output/sub1_results.csv"
 
 
 def 扉列名(class_name):
