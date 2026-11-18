@@ -30,9 +30,5 @@ ZIPで受け取った場合は、右クリックして展開してください�
 ### 3. 必要なライブラリをインストールする
 以下のコマンドを実行してください。
 
-py -m pip install -r requirements.txt# seiryo
-
-### 4. 実行する
-以下のコマンドを実行してください。または、start.pyをダブルクリックしてください。
-
-python start.py
+```bash
+py -m pip install -r requirements.txt
